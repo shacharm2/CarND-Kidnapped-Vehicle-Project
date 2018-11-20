@@ -22,7 +22,7 @@
 
 using namespace std;
 
-const int NUM_PARTICLES = 1000;
+const int NUM_PARTICLES = 137;
 default_random_engine gen;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
@@ -62,13 +62,12 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	for (int np = 0; np < this->num_particles; np++)
 	{
 		t = this->particles[np].theta;
-
-		if (fabs(yaw_rate) < 1e-4)
+		if (fabs(yaw_rate) < 1e-3)
 		{
 			// sin(t+dt) - sin(t) = 2 * sin((t+dt-t)/2) * cos((t+dt+t)/2) = 2 * sin(dt/2) * cos(t + dt/2)    
 			// 2 * sin(dt/2) * cos(t + dt/2) / dt = sin(dt/2)/(dt/2) * cos(t+dt/2) = cos(t+dt/2)
-			x = this->particles[np].x + velocity * cos(t + yaw_rate * delta_t);
-			y = this->particles[np].y + velocity * sin(t + yaw_rate * delta_t);
+			x = this->particles[np].x + velocity * cos(t + yaw_rate * delta_t) * delta_t;
+			y = this->particles[np].y + velocity * sin(t + yaw_rate * delta_t) * delta_t;
 		}
 		else
 		{
@@ -151,14 +150,14 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			float y = map_landmarks.landmark_list[im].y_f;; // Landmark y-position in the map (global coordinates)
 			
 			// take only landmarks R < sensor_range
-			double R = dist(x, y, xp, yp); //sqrt(pow(x-xp, 2) + pow(y-yp, 2));
+			double R = sqrt(pow(x-xp, 2) + pow(y-yp, 2));
 			if (R < sensor_range) {
 				predictions_i.push_back(LandmarkObs{id, x, y});
 			}
 		}
 		if (predictions_i.size() == 0)
 		{
-			this->particles[ip].weight = 1e-6;			
+			this->particles[ip].weight = 1e-99;			
 			continue;
 		}
 		dataAssociation(predictions_i, observations_i);
@@ -169,19 +168,19 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		{
 			double xo = observations_i[io].x;
 			double yo = observations_i[io].y;
-			double xp, yp;
+			double xm, ym;
 			for (unsigned int ip = 0; ip < predictions_i.size(); ip++)
 			{
 				if (predictions_i[ip].id == observations_i[io].id)
 				{
-					xp = predictions_i[ip].x;
-					yp = predictions_i[ip].y;
+					xm = predictions_i[ip].x;
+					ym = predictions_i[ip].y;
 					break;
 				}
 			}
 
-			double dx = xp - xo;
-			double dy = yp - yo;
+			double dx = xm - xo;
+			double dy = ym - yo;
 			double exp_arg = -0.5 * (pow(dx / std_landmark[0], 2) + pow(dy / std_landmark[1], 2));
 			double gauss_norm = (2 * M_PI * std_landmark[0] * std_landmark[1]);
 			
@@ -209,6 +208,54 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	// }
 }
 
+
+
+void ParticleFilter::resample() {
+	// TODO: Resample particles with replacement with probability proportional to their weight. 
+	// NOTE: You may find std::discrete_distribution helpful here.
+	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution.
+	
+	//creat new particles
+	vector<Particle> new_particles;
+	
+	//read the current weights for the resampling wheel
+	vector<double> weights;
+	for (unsigned int particle = 0; particle < num_particles; particle++)
+		weights.push_back(particles[particle].weight);
+	
+	//random start index for the resampling wheel
+	uniform_int_distribution<int> uniintdist(0, num_particles-1);
+	auto index = uniintdist(gen);
+	
+	//find the maximum weight
+	double max_weight = *max_element(weights.begin(), weights.end());
+	
+	// get a uniform random distribution
+	uniform_real_distribution<double> uni_dist(0.0, max_weight);
+	
+	//beta
+	double beta = 0.0;
+	
+	//resampling wheel
+	for (int i = 0; i < num_particles; i++)
+	{
+		beta = beta + uni_dist(gen) * 2.0;
+		
+		while(beta > weights[index])
+		{
+			beta = beta - weights[index];
+			index = (index + 1) % num_particles;
+		}
+		
+		new_particles.push_back(particles[index]);
+	}
+	
+	//resample
+	particles = new_particles;
+	
+}
+
+/*
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
@@ -238,6 +285,7 @@ void ParticleFilter::resample() {
 	this->particles = resampled_particles;
 
 }
+*/
 
 Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<int>& associations, 
                                      const std::vector<double>& sense_x, const std::vector<double>& sense_y)
