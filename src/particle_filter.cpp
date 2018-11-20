@@ -61,7 +61,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	{
 		t = this->particles[np].theta;
 
-		if (fabs(yaw_rate) < 1e-6)
+		if (fabs(yaw_rate) < 1e-4)
 		{
 			// sin(t+dt) - sin(t) = 2 * sin((t+dt-t)/2) * cos((t+dt+t)/2) = 2 * sin(dt/2) * cos(t + dt/2)    
 			// 2 * sin(dt/2) * cos(t + dt/2) / dt = sin(dt/2)/(dt/2) * cos(t+dt/2) = cos(t+dt/2)
@@ -87,11 +87,11 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
 	vector<int> visited;
-	for (unsigned int ip = 0; ip < predicted.size(); ip++)
+	for (unsigned int io = 0; io < observations.size(); io++)
 	{
 		double min_dist = 1e99;
 		int map_id;
-		for (unsigned int io = 0; io < observations.size(); io++)
+		for (unsigned int ip = 0; ip < predicted.size(); ip++)
 		{
 			double dist = abs(predicted[ip].x - observations[io].x) + abs(predicted[ip].y - observations[io].y);
 			bool been_visited = find(visited.begin(), visited.end(), observations[io].id) != visited.end();
