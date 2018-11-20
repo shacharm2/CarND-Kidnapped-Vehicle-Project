@@ -23,6 +23,7 @@
 using namespace std;
 
 const int NUM_PARTICLES = 1000;
+default_random_engine gen;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
@@ -32,7 +33,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	this->num_particles = NUM_PARTICLES;
 	//std::vector<Particle> particles;
 
-	default_random_engine gen;
     //std::normal_distribution<double> gen_x(x, std[0]);
     //std::normal_distribution<double> gen_y(y, std[1]);
     //std::normal_distribution<double> gen_t(theta, std[2]);
@@ -46,6 +46,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		p.weight = 1.0;
 		this->particles.push_back(p);
 	}
+
+	is_initialized = true;
 }
 
 
@@ -54,18 +56,17 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
-	default_random_engine gen;
 	double x, y, t;
 	for (int np = 0; np < this->num_particles; np++)
 	{
 		t = this->particles[np].theta;
 
-		if (yaw_rate < 0.001)
+		if (fabs(yaw_rate) < 1e-6)
 		{
 			// sin(t+dt) - sin(t) = 2 * sin((t+dt-t)/2) * cos((t+dt+t)/2) = 2 * sin(dt/2) * cos(t + dt/2)    
 			// 2 * sin(dt/2) * cos(t + dt/2) / dt = sin(dt/2)/(dt/2) * cos(t+dt/2) = cos(t+dt/2)
-			x = this->particles[np].x + velocity * cos(t + yaw_rate * delta_t / 2);
-			y = this->particles[np].y + velocity * sin(t + yaw_rate * delta_t / 2);
+			x = this->particles[np].x + velocity * cos(t + yaw_rate * delta_t);
+			y = this->particles[np].y + velocity * sin(t + yaw_rate * delta_t);
 		}
 		else
 		{
@@ -173,17 +174,24 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 				}
 			}
 
-			this->particles[ip].weight *= normal_distribution<double>(xp - xo, std_landmark[0])(gen);
-			this->particles[ip].weight *= normal_distribution<double>(yp - yo, std_landmark[1])(gen);
+			double dx = xp - xo;
+			double dy = yp - yo;
+			double exp_arg = -0.5 * (pow(dx / std_landmark[0], 2) + pow(dy / std_landmark[1], 2));
+			double gauss_norm = 1. / (2 * M_PI * std_landmark[0] * std_landmark[1]);
+			
+			this->particles[ip].weight *= gauss_norm * exp(exp_arg);
+			//this->particles[ip].weight *= normal_distribution<double>(xp - xo, std_landmark[0])(gen);
+			//this->particles[ip].weight *= normal_distribution<double>(yp - yo, std_landmark[1])(gen);
+
 		}
 
 		Wnorm += this->particles[ip].weight;
 	}
 
 	// normalize
-	for (unsigned int ip = 0; ip < (unsigned int)this->num_particles; ip++){
+	/*for (unsigned int ip = 0; ip < (unsigned int)this->num_particles; ip++){
 		this->particles[ip].weight /= Wnorm;
-	}
+	}*/
 }
 
 void ParticleFilter::resample() {
