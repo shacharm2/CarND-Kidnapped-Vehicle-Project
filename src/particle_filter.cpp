@@ -44,6 +44,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		p.y = normal_distribution<double>(y, std[1])(gen);
 		p.theta = normal_distribution<double>(theta, std[2])(gen);
 		p.weight = 1.0;
+		p.id = np;
+		
 		this->particles.push_back(p);
 	}
 
@@ -102,7 +104,8 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 			}
 		}
 		visited.push_back(map_id);
-		predicted[ip].id = map_id;
+		//predicted[ip].id = map_id;
+		observations[io].id = map_id;
 	}
 }
 
