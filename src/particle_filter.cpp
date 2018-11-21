@@ -66,8 +66,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 		{
 			// sin(t+dt) - sin(t) = 2 * sin((t+dt-t)/2) * cos((t+dt+t)/2) = 2 * sin(dt/2) * cos(t + dt/2)    
 			// 2 * sin(dt/2) * cos(t + dt/2) / dt = sin(dt/2)/(dt/2) * cos(t+dt/2) = cos(t+dt/2)
-			x = this->particles[np].x + velocity * cos(t + yaw_rate * delta_t) * delta_t;
-			y = this->particles[np].y + velocity * sin(t + yaw_rate * delta_t) * delta_t;
+			x = this->particles[np].x + velocity * cos(t + yaw_rate * delta_t / 2) * delta_t;
+			y = this->particles[np].y + velocity * sin(t + yaw_rate * delta_t / 2) * delta_t;
 		}
 		else
 		{
@@ -157,13 +157,19 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 		if (predictions_i.size() == 0)
 		{
-			this->particles[ip].weight = 1e-99;			
+			this->particles[ip].weight = 0;//1e-99;			
 			continue;
 		}
 		dataAssociation(predictions_i, observations_i);
 
+		// set associations
+
+
 		// update weights
 		this->particles[ip].weight = 1;
+
+		vector<int> associations;
+		vector<double> sense_x, sense_y;
 		for (unsigned int io = 0; io < observations_i.size(); io++)
 		{
 			double xo = observations_i[io].x;
@@ -175,9 +181,13 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 				{
 					xm = predictions_i[ip].x;
 					ym = predictions_i[ip].y;
+					associations.push_back(predictions_i[ip].id);
+					sense_x.push_back(xo);
+					sense_y.push_back(yo);
 					break;
 				}
 			}
+			// not in the scope: might not associate a landmark/observation, requires checking
 
 			double dx = xm - xo;
 			double dy = ym - yo;
@@ -191,103 +201,57 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 
 		Wnorm += this->particles[ip].weight;
+
+		SetAssociations(this->particles[ip], associations, sense_x, sense_y);
 	}
 
-	// if (Wnorm == 0)
-	// {
-	// 	for (unsigned int ip = 0; ip < (unsigned int)this->num_particles; ip++)
-	// 	{
-	// 		this->particles[ip].weight = 1;
-	// 	}		
-	// }
-	//cout << "Wnorm=" << Wnorm << endl;
-
-	// normalize
-	// for (unsigned int ip = 0; ip < (unsigned int)this->num_particles; ip++){
-	// 	this->particles[ip].weight /= Wnorm;
-	// }
-}
-
-
-
-void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight. 
-	// NOTE: You may find std::discrete_distribution helpful here.
-	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution.
-	
-	//creat new particles
-	vector<Particle> new_particles;
-	
-	//read the current weights for the resampling wheel
-	vector<double> weights;
-	for (unsigned int particle = 0; particle < num_particles; particle++)
-		weights.push_back(particles[particle].weight);
-	
-	//random start index for the resampling wheel
-	uniform_int_distribution<int> uniintdist(0, num_particles-1);
-	auto index = uniintdist(gen);
-	
-	//find the maximum weight
-	double max_weight = *max_element(weights.begin(), weights.end());
-	
-	// get a uniform random distribution
-	uniform_real_distribution<double> uni_dist(0.0, max_weight);
-	
-	//beta
-	double beta = 0.0;
-	
-	//resampling wheel
-	for (int i = 0; i < num_particles; i++)
+	// normalize weights to sum up to 1
+	for (unsigned int ip = 0; ip < (unsigned int)this->num_particles; ip++)
 	{
-		beta = beta + uni_dist(gen) * 2.0;
-		
-		while(beta > weights[index])
-		{
-			beta = beta - weights[index];
-			index = (index + 1) % num_particles;
+		if (Wnorm == 0) {
+			this->particles[ip].weight = 1. / this->num_particles;
 		}
-		
-		new_particles.push_back(particles[index]);
+		else {
+			this->particles[ip].weight /= Wnorm;
+		}
 	}
-	
-	//resample
-	particles = new_particles;
-	
 }
 
-/*
+
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
-	// 1000 particles
-	std::array<int, NUM_PARTICLES> init = {0};
-	//int init[1000] = {0};
+	array<int, NUM_PARTICLES> init = {0};
+
+	/*  discrete_distribution works with ints - normalize by smallest nonzero weight
+	*/ 
 	double min_weight = 1e99;
 	for (int i = 0; i < this->num_particles; i++)
 	{
+		if (this->particles[i].weight == 0) {
+			continue;
+		}
 		min_weight = min(min_weight, this->particles[i].weight);
 	}
 
 
-	for (int i = 0; i < this->num_particles; i++)
-	{
+	for (int i = 0; i < this->num_particles; i++) {
 		init[i] = (int)(this->particles[i].weight / min_weight);
 	}
-	std::discrete_distribution<int> vec(init.begin(), init.end());
+	discrete_distribution<int> vec(init.begin(), init.end());
 
-	std::vector<Particle> resampled_particles;
+	vector<Particle> resampled_particles;
 	for (int i = 0; i < this->num_particles; i++)
 	{
 		resampled_particles.push_back(this->particles[vec(gen)]);
 	}
 	this->particles = resampled_particles;
-
 }
-*/
 
-Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<int>& associations, 
+
+void ParticleFilter::SetAssociations(Particle& particle, const std::vector<int>& associations, 
                                      const std::vector<double>& sense_x, const std::vector<double>& sense_y)
 {
     //particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
