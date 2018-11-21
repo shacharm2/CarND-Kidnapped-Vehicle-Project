@@ -31,11 +31,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 	this->num_particles = NUM_PARTICLES;
-	//std::vector<Particle> particles;
-
-    //std::normal_distribution<double> gen_x(x, std[0]);
-    //std::normal_distribution<double> gen_y(y, std[1]);
-    //std::normal_distribution<double> gen_t(theta, std[2]);
 
 	for (int np = 0; np < this->num_particles; np++)
 	{
@@ -195,9 +190,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double gauss_norm = (2 * M_PI * std_landmark[0] * std_landmark[1]);
 			
 			this->particles[ip].weight *= exp(exp_arg) / gauss_norm;
-			//this->particles[ip].weight *= normal_distribution<double>(xp - xo, std_landmark[0])(gen);
-			//this->particles[ip].weight *= normal_distribution<double>(yp - yo, std_landmark[1])(gen);
-
 		}
 
 		Wnorm += this->particles[ip].weight;
