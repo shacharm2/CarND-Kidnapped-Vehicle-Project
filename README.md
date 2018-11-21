@@ -113,7 +113,7 @@ In this project a 2D particle filter has been implementedf in C++. The particle 
 |---|---|---|
 | Error x | 0.309    | Y |
 | Error y | 0.325   | Y |
-| Error yaw | 0.11 | Y |
+| Error yaw | 0.011 | Y |
 | Running time | 49.30 | Y|
 
 
