@@ -117,7 +117,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   http://planning.cs.uiuc.edu/node99.html
 
 	// for every particle, find all map_landmarks predicted locations
-	//std::vector<LandmarkObs> predicted
 	double Wnorm = 0;
 	for (unsigned int ip = 0; ip < (unsigned int)this->num_particles; ip++)
 	{
@@ -157,9 +156,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 		dataAssociation(predictions_i, observations_i);
 
-		// set associations
-
-
 		// update weights
 		this->particles[ip].weight = 1;
 
@@ -193,7 +189,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 
 		Wnorm += this->particles[ip].weight;
-
 		SetAssociations(this->particles[ip], associations, sense_x, sense_y);
 	}
 
@@ -217,8 +212,7 @@ void ParticleFilter::resample() {
 
 	array<int, NUM_PARTICLES> init = {0};
 
-	/*  discrete_distribution works with ints - normalize by smallest nonzero weight
-	*/ 
+	/*  discrete_distribution works with ints - normalize by smallest nonzero weight */ 
 	double min_weight = 1e99;
 	for (int i = 0; i < this->num_particles; i++)
 	{
