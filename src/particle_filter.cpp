@@ -166,13 +166,13 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double xo = observations_i[io].x;
 			double yo = observations_i[io].y;
 			double xm, ym;
-			for (unsigned int ip = 0; ip < predictions_i.size(); ip++)
+			for (unsigned int ipx = 0; ipx < predictions_i.size(); ipx++)
 			{
-				if (predictions_i[ip].id == observations_i[io].id)
+				if (predictions_i[ipx].id == observations_i[io].id)
 				{
-					xm = predictions_i[ip].x;
-					ym = predictions_i[ip].y;
-					associations.push_back(predictions_i[ip].id);
+					xm = predictions_i[ipx].x;
+					ym = predictions_i[ipx].y;
+					associations.push_back(predictions_i[ipx].id);
 					sense_x.push_back(xo);
 					sense_y.push_back(yo);
 					break;
