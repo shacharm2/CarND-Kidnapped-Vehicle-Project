@@ -3,7 +3,7 @@
 ![finish_image](./images/video.gif)
 
 ## Project 
-In this project 2 dimensional particle filter has been implementedf in C++. The particle filter is given a map and some initial localization information (analogous to what a GPS would provide). At each time step the filter will also get noisy observation and control data.
+In this project a 2D particle filter has been implementedf in C++. The particle filter is given a map and some initial localization information (analogous to what a GPS would provide). At each time step the filter will also get noisy observation and control data.
 
 ## Filter inputs
 
@@ -113,7 +113,7 @@ In this project 2 dimensional particle filter has been implementedf in C++. The 
 |---|---|---|
 | Error x | 0.309    | Y |
 | Error y | 0.325   | Y |
-| Error yaw | 0.11 | Y |
+| Error yaw | 0.011 | Y |
 | Running time | 49.30 | Y|
 
 
